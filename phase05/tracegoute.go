@@ -52,6 +52,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// var header Header
+
+	// header := Header{
+	// 	Version : 4      // protocol version
+	// 	Len : 5         // header length
+	// 	TOS :      // type-of-service
+	// 	TotalLen int         // packet total length
+	// 	ID       int         // identification
+	// 	Flags    HeaderFlags // flags
+	// 	FragOff  int         // fragment offset
+	// 	TTL      int         // time-to-live
+	// 	Protocol int         // next protocol
+	// 	Checksum int         // checksum
+	// 	Src : ipAddr      // source address
+	// 	Dst : ipAddr      // destination address
+	// 	Options  []byte      // options, extension headers
+	// }
+
 	icmpMsg := make([]byte, 8)
 
 	icmpMsg[0] = 8
@@ -76,8 +94,11 @@ func main() {
 	// if err != nil {
 	// 	fmt.Println(err)
 	// }
+	buff := make([]byte, 512)
 
-	fmt.Println(err)
+	_, addr, err := conn.ReadFrom(buff)
+
+	fmt.Println(addr.String())
 
 }
 
