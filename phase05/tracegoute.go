@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"net"
 	"os"
+
+	// "syscall"
+	// "encoding/binary"
+	"golang.org/x/net/ipv4"
 	//"time"
 )
 
@@ -31,6 +35,19 @@ type Header struct {
 	Options  []byte      // options, extension headers
 }
 
+func checksum(msg []byte) uint16 {
+	sum := 0
+	for i := 0; i < len(msg)-1; i += 2 {
+		sum += int(msg[i])*256 + int(msg[i+1])
+	}
+	if len(msg)%2 == 1 {
+		sum += int(msg[len(msg)-1]) * 256
+	}
+	sum = (sum >> 16) + (sum & 0xffff)
+	sum += (sum >> 16)
+	return uint16(^sum)
+}
+
 func main() {
 	if len(os.Args) != 2 {
 		fmt.Fprintf(os.Stderr, "Usage: %s host\n", os.Args[0])
@@ -52,23 +69,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// var header Header
+	ipv4Conn := ipv4.NewConn(conn)
 
-	// header := Header{
-	// 	Version : 4      // protocol version
-	// 	Len : 5         // header length
-	// 	TOS :      // type-of-service
-	// 	TotalLen int         // packet total length
-	// 	ID       int         // identification
-	// 	Flags    HeaderFlags // flags
-	// 	FragOff  int         // fragment offset
-	// 	TTL      int         // time-to-live
-	// 	Protocol int         // next protocol
-	// 	Checksum int         // checksum
-	// 	Src : ipAddr      // source address
-	// 	Dst : ipAddr      // destination address
-	// 	Options  []byte      // options, extension headers
-	// }
+	err = ipv4Conn.SetTTL(64)
 
 	icmpMsg := make([]byte, 8)
 
@@ -81,103 +84,36 @@ func main() {
 	icmpMsg[6] = 0
 	icmpMsg[7] = 2
 
+	// icmpMsg := Header{
+	// 	Version:  4,                        // Example for IPv4
+	// 	Len:      20,                       // Example header length in bytes
+	// 	TOS:      0,                        // Default type-of-service
+	// 	TotalLen: 40,                       // Example total length
+	// 	ID:       54321,                    // Example identification
+	// 	Flags:    0,                        // Example flag value
+	// 	FragOff:  0,                        // No fragmentation
+	// 	TTL:      64,                       // Example TTL value
+	// 	Protocol: 6,                        // Example for TCP
+	// 	Checksum: 0,                        // Placeholder for checksum
+	// 	Src:      net.ParseIP("127.0.0.1"), // Example source address
+	// 	Dst:      net.ParseIP("127.0.0.1"), // Example destination address
+	// 	Options:  []byte{0x01, 0x02},       // Example options
+	// }
+	// data, err := icmpMsg.ToBytes()
+
+	checksum := checksum(icmpMsg)
+	icmpMsg[2] = byte(checksum >> 8)
+	icmpMsg[3] = byte(checksum)
+
 	_, err = conn.Write(icmpMsg)
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	// reply := make([]byte, 1024)
-
-	// n, err := conn.Read(reply)
-
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
 	buff := make([]byte, 512)
 
-	_, addr, err := conn.ReadFrom(buff)
+	_, err = conn.Read(buff)
 
-	fmt.Println(addr.String())
-
+	fmt.Println(buff)
 }
-
-// package main
-
-// import (
-// 	"fmt"
-// 	"net"
-// 	"os"
-// 	"time"
-
-// 	"golang.org/x/net/icmp"
-// 	"golang.org/x/net/ipv4"
-// )
-
-// func main() {
-// 	// Target IP address (change as needed)
-// 	target := "8.8.8.8"
-
-// 	// Resolve the IP address
-// 	ipAddr, err := net.ResolveIPAddr("ip4", target)
-// 	if err != nil {
-// 		fmt.Println("Error resolving IP address:", err)
-// 		return
-// 	}
-
-// 	// Create a raw socket for ICMP
-// 	conn, err := net.DialIP("ip4:icmp", nil, ipAddr)
-// 	if err != nil {
-// 		fmt.Println("Error creating ICMP connection:", err)
-// 		return
-// 	}
-// 	defer conn.Close()
-
-// 	// Create the ICMP Echo Request message
-// 	msg := icmp.Echo{
-// 		ID:   os.Getpid() & 0xffff, // Identifier
-// 		Seq:  1,                    // Sequence number
-// 		Data: []byte("Hello!"),     // Data to send
-// 	}
-
-// 	// Marshal the message into a byte slice
-// 	b, err := msg.Marshal(nil)
-// 	if err != nil {
-// 		fmt.Println("Error marshaling message:", err)
-// 		return
-// 	}
-
-// 	// Set a deadline for the response
-// 	conn.SetDeadline(time.Now().Add(2 * time.Second))
-
-// 	// Send the ICMP message
-// 	if _, err := conn.Write(b); err != nil {
-// 		fmt.Println("Error sending message:", err)
-// 		return
-// 	}
-
-// 	// Prepare to receive a reply
-// 	reply := make([]byte, 512)
-// 	n, addr, err := conn.ReadFrom(reply)
-// 	if err != nil {
-// 		fmt.Println("Error reading reply:", err)
-// 		return
-// 	}
-
-// 	// Parse the ICMP reply message
-// 	r, err := icmp.ParseMessage(icmp.ProtocolICMP, reply[:n])
-// 	if err != nil {
-// 		fmt.Println("Error parsing reply:", err)
-// 		return
-// 	}
-
-// 	// Check the type of the reply
-// 	switch r.Type {
-// 	case ipv4.ICMPTimeExceeded:
-// 		fmt.Printf("Received Time Exceeded from %s\n", addr.String())
-// 	case ipv4.ICMPReply:
-// 		fmt.Printf("Received Reply from %s\n", addr.String())
-// 	default:
-// 		fmt.Printf("Unexpected reply from %s: %v\n", addr.String(), r)
-// 	}
-// }
