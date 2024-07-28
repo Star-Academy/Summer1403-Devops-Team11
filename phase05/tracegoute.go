@@ -28,6 +28,11 @@ var client = redis.NewClient(&redis.Options{
 	DB:       0,
 })
 
+type traceResponse struct {
+	TTL      int
+	Response string
+}
+
 func main() {
 	router := gin.Default()
 	router.GET("/traceroute/:host", trace)
@@ -49,11 +54,7 @@ func trace(c *gin.Context) {
 		return
 	}
 
-	// traceResponse := make(map[int]string)
-	var traceResponse []struct {
-		Key   int
-		Value string
-	}
+	var traceResponses []traceResponse
 
 	for ttl := 1; ttl <= MAXTTL; ttl++ {
 		// Create a raw socket
@@ -134,10 +135,7 @@ func trace(c *gin.Context) {
 			// fmt.Println("Read error: ", err)
 			fmt.Println("*\t*\t*")
 			// traceResponse[ttl] = "Timed Out"
-			traceResponse = append(traceResponse, struct {
-				Key   int
-				Value string
-			}{Key: ttl, Value: "Time Out."})
+			traceResponses = append(traceResponses, traceResponse{TTL: ttl, Response: "Time Out."})
 			continue
 		}
 
@@ -156,23 +154,19 @@ func trace(c *gin.Context) {
 		switch rm.Type {
 
 		case ipv4.ICMPTypeEchoReply:
-			// traceResponse[ttl] = ipAddr.String() + duration.String()
-			traceResponse = append(traceResponse, struct {
-				Key   int
-				Value string
-			}{Key: ttl, Value: ipAddr.String() + "\t" + duration.String()})
+			traceResponses = append(traceResponses, traceResponse{TTL: ttl, Response: ipAddr.String() + "\t" + duration.String()})
 
 			fmt.Println(ipAddr, ttl, duration)
 			c.IndentedJSON(
 				http.StatusOK,
-				traceResponse,
+				traceResponses,
 			)
 
-			sort.Slice(traceResponse, func(i, j int) bool {
-				return traceResponse[i].Key < traceResponse[j].Key
+			sort.Slice(traceResponses, func(i, j int) bool {
+				return traceResponses[i].TTL < traceResponses[j].TTL
 			})
 
-			jsondata, _ := json.Marshal(traceResponse)
+			jsondata, _ := json.Marshal(traceResponses)
 
 			err := client.Set(ctx, host+start.String(), jsondata, 0).Err()
 			if err != nil {
@@ -184,19 +178,14 @@ func trace(c *gin.Context) {
 				log.Fatalf("could not get hash: %v", err)
 			}
 
-			var rmap map[int]string
+			var retResponse []traceResponse
+			err = json.Unmarshal([]byte(val), &retResponse)
 
-			err = json.Unmarshal([]byte(val), &rmap)
-
-			fmt.Println(rmap)
+			fmt.Println(retResponse)
 			return
 
 		case ipv4.ICMPTypeTimeExceeded:
-			// traceResponse[ttl] = addr.String() + duration.String()
-			traceResponse = append(traceResponse, struct {
-				Key   int
-				Value string
-			}{Key: ttl, Value: addr.String() + "\t" + duration.String()})
+			traceResponses = append(traceResponses, traceResponse{TTL: ttl, Response: addr.String() + "\t" + duration.String()})
 
 			fmt.Println(&net.IPAddr{IP: addr.(*net.IPAddr).IP}, ttl, duration)
 
@@ -206,7 +195,7 @@ func trace(c *gin.Context) {
 	}
 	c.IndentedJSON(
 		http.StatusOK,
-		traceResponse,
+		traceResponses,
 	)
 }
 
