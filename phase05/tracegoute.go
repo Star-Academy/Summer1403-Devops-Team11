@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
+	"net/http"
 	"time"
-    "net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
-    "github.com/gin-gonic/gin"
 )
 
 const (
@@ -16,49 +20,56 @@ const (
 	MAXTTL       = 128
 )
 
-func main() {
-    router := gin.Default()
-    router.GET("/traceroute/:host", trace)
+var ctx = context.Background()
+var client = redis.NewClient(&redis.Options{
+	Addr:     "localhost:6379",
+	Password: "",
+	DB:       0,
+})
 
-    router.Run("localhost:8080")
+func main() {
+	router := gin.Default()
+	router.GET("/traceroute/:host", trace)
+
+	router.Run("localhost:8080")
 }
 
 func trace(c *gin.Context) {
-    host := c.Param("host")
+	host := c.Param("host")
 
 	// Resolve IP address
 	ipAddr, err := net.ResolveIPAddr("ip4", host)
 	if err != nil {
 		fmt.Println("Error resolving IP address:", err)
-        c.IndentedJSON(
-            http.StatusInternalServerError,
-            gin.H{"ERROR": "Failed to resolve IP address"},
-        )
-        return
+		c.IndentedJSON(
+			http.StatusInternalServerError,
+			gin.H{"ERROR": "Failed to resolve IP address"},
+		)
+		return
 	}
 
-    traceResponse := make(map[int]string)
+	traceResponse := make(map[int]string)
 
 	for ttl := 1; ttl <= MAXTTL; ttl++ {
 		// Create a raw socket
 		conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 		if err != nil {
 			fmt.Println("Error creating socket:", err)
-            c.IndentedJSON(
-                http.StatusInternalServerError,
-                gin.H{"ERROR": "Failed to create socket"},
-            )
-            return
+			c.IndentedJSON(
+				http.StatusInternalServerError,
+				gin.H{"ERROR": "Failed to create socket"},
+			)
+			return
 		}
 		defer conn.Close()
 
 		if err := conn.IPv4PacketConn().SetTTL(ttl); err != nil {
 			fmt.Println("Error setting TTL:", err)
-            c.IndentedJSON(
-                http.StatusInternalServerError,
-                gin.H{"ERROR": "Failed to set ttl"},
-            )
-            return
+			c.IndentedJSON(
+				http.StatusInternalServerError,
+				gin.H{"ERROR": "Failed to set ttl"},
+			)
+			return
 		}
 
 		// Create ICMP packet
@@ -95,21 +106,21 @@ func trace(c *gin.Context) {
 		_, err = conn.WriteTo(icmpMsg, ipAddr)
 		if err != nil {
 			fmt.Println(err)
-            c.IndentedJSON(
-                http.StatusInternalServerError,
-                gin.H{"ERROR": "Failed to write"},
-            )
-            return
+			c.IndentedJSON(
+				http.StatusInternalServerError,
+				gin.H{"ERROR": "Failed to write"},
+			)
+			return
 		}
 
 		buff := make([]byte, 512)
 		err = conn.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
 		if err != nil {
 			fmt.Println("set read deadline error: ", err)
-            c.IndentedJSON(
-                http.StatusInternalServerError,
-                gin.H{"ERROR": "Failed to set read deadline"},
-            )
+			c.IndentedJSON(
+				http.StatusInternalServerError,
+				gin.H{"ERROR": "Failed to set read deadline"},
+			)
 			return
 		}
 
@@ -117,7 +128,7 @@ func trace(c *gin.Context) {
 		if err != nil {
 			// fmt.Println("Read error: ", err)
 			fmt.Println("*\t*\t*")
-            traceResponse[ttl] = "Timed Out"
+			traceResponse[ttl] = "Timed Out"
 			continue
 		}
 
@@ -126,38 +137,55 @@ func trace(c *gin.Context) {
 		rm, err := icmp.ParseMessage(ProtocolICMP, buff[:n])
 		if err != nil {
 			fmt.Println(err)
-            c.IndentedJSON(
-                http.StatusInternalServerError,
-                gin.H{"ERROR": "Failed to parse ICMP message"},
-            )
+			c.IndentedJSON(
+				http.StatusInternalServerError,
+				gin.H{"ERROR": "Failed to parse ICMP message"},
+			)
 			return
 		}
 
 		switch rm.Type {
 
 		case ipv4.ICMPTypeEchoReply:
-            traceResponse[ttl] = ipAddr.String()+duration.String()
+			traceResponse[ttl] = ipAddr.String() + duration.String()
 			fmt.Println(ipAddr, ttl, duration)
-            c.IndentedJSON(
-                http.StatusOK,
-                traceResponse,
-            )
-            return
+			c.IndentedJSON(
+				http.StatusOK,
+				traceResponse,
+			)
+
+			jsondata, _ := json.Marshal(traceResponse)
+
+			err := client.Set(ctx, host+start.String(), jsondata, 0).Err()
+			if err != nil {
+				log.Fatalf("could not set hash: %v", err)
+			}
+
+			val, err := client.Get(ctx, host+start.String()).Result()
+			if err != nil {
+				log.Fatalf("could not get hash: %v", err)
+			}
+
+			var rmap map[int]string
+
+			err = json.Unmarshal([]byte(val), &rmap)
+
+			fmt.Println(rmap)
+			return
 
 		case ipv4.ICMPTypeTimeExceeded:
-            traceResponse[ttl] = addr.String()+duration.String()
+			traceResponse[ttl] = addr.String() + duration.String()
 			fmt.Println(&net.IPAddr{IP: addr.(*net.IPAddr).IP}, ttl, duration)
 
 		default:
 			fmt.Println("got %+v from %v; want echo reply", rm, addr)
 		}
 	}
-    c.IndentedJSON(
-        http.StatusOK,
-        traceResponse,
-    )
+	c.IndentedJSON(
+		http.StatusOK,
+		traceResponse,
+	)
 }
-
 
 func checksum(msg []byte) uint16 {
 	sum := 0
