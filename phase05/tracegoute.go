@@ -88,8 +88,9 @@ func main() {
 
 		n, addr, err := conn.ReadFrom(buff)
 		if err != nil {
-			fmt.Println("Read error: ", err, addr)
-			return
+			// fmt.Println("Read error: ", err)
+			fmt.Println("*\t*\t*")
+			continue
 		}
 
 		duration := time.Since(start)
