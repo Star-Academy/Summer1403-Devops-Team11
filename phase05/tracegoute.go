@@ -10,7 +10,10 @@ import (
 	"golang.org/x/net/ipv4"
 )
 
-const ProtocolICMP = 1
+const (
+	ProtocolICMP = 1
+	MAXTTL       = 128
+)
 
 func main() {
 	if len(os.Args) != 2 {
@@ -27,7 +30,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	for ttl := 1; ttl <= 30; ttl++ {
+	for ttl := 1; ttl <= MAXTTL; ttl++ {
 		// Create a raw socket
 		conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 		if err != nil {
