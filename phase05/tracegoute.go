@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
+    "net/http"
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -30,7 +30,11 @@ func trace(c *gin.Context) {
 	ipAddr, err := net.ResolveIPAddr("ip4", host)
 	if err != nil {
 		fmt.Println("Error resolving IP address:", err)
-		os.Exit(1)
+        c.IndentedJSON(
+            http.StatusInternalServerError,
+            gin.H{"ERROR": "Failed to resolve IP address"},
+        )
+        return
 	}
 
 	for ttl := 1; ttl <= MAXTTL; ttl++ {
@@ -38,14 +42,21 @@ func trace(c *gin.Context) {
 		conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 		if err != nil {
 			fmt.Println("Error creating socket:", err)
-			os.Exit(1)
+            c.IndentedJSON(
+                http.StatusInternalServerError,
+                gin.H{"ERROR": "Failed to create socket"},
+            )
+            return
 		}
-
 		defer conn.Close()
 
 		if err := conn.IPv4PacketConn().SetTTL(ttl); err != nil {
 			fmt.Println("Error setting TTL:", err)
-			os.Exit(1)
+            c.IndentedJSON(
+                http.StatusInternalServerError,
+                gin.H{"ERROR": "Failed to set ttl"},
+            )
+            return
 		}
 
 		// Create ICMP packet
@@ -82,13 +93,21 @@ func trace(c *gin.Context) {
 		_, err = conn.WriteTo(icmpMsg, ipAddr)
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(1)
+            c.IndentedJSON(
+                http.StatusInternalServerError,
+                gin.H{"ERROR": "Failed to write"},
+            )
+            return
 		}
 
 		buff := make([]byte, 512)
 		err = conn.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
 		if err != nil {
 			fmt.Println("set read deadline error: ", err)
+            c.IndentedJSON(
+                http.StatusInternalServerError,
+                gin.H{"ERROR": "Failed to set read deadline"},
+            )
 			return
 		}
 
@@ -104,6 +123,10 @@ func trace(c *gin.Context) {
 		rm, err := icmp.ParseMessage(ProtocolICMP, buff[:n])
 		if err != nil {
 			fmt.Println(err)
+            c.IndentedJSON(
+                http.StatusInternalServerError,
+                gin.H{"ERROR": "Failed to parse ICMP message"},
+            )
 			return
 		}
 
@@ -111,7 +134,7 @@ func trace(c *gin.Context) {
 
 		case ipv4.ICMPTypeEchoReply:
 			fmt.Println(ipAddr, ttl, duration)
-			os.Exit(1)
+            return
 
 		case ipv4.ICMPTypeTimeExceeded:
 			fmt.Println(&net.IPAddr{IP: addr.(*net.IPAddr).IP}, ttl, duration)
