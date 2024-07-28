@@ -88,20 +88,6 @@ func trace(c *gin.Context) {
 		}
 
 		// Create ICMP packet
-		// icmpMsg := make([]byte, 8)
-		// icmpMsg[0] = 8
-		// icmpMsg[1] = 0
-		// icmpMsg[2] = 0
-		// icmpMsg[3] = 0
-		// icmpMsg[4] = 0
-		// icmpMsg[5] = 1
-		// icmpMsg[6] = 0
-		// icmpMsg[7] = 2
-
-		// checksum := checksum(icmpMsg)
-		// icmpMsg[2] = byte(checksum >> 8)
-		// icmpMsg[3] = byte(checksum)
-
 		msg := icmp.Message{
 			Type: ipv4.ICMPTypeEcho, Code: 0,
 			Body: &icmp.Echo{
@@ -204,19 +190,6 @@ func trace(c *gin.Context) {
 		http.StatusOK,
 		traceResponses,
 	)
-}
-
-func checksum(msg []byte) uint16 {
-	sum := 0
-	for i := 0; i < len(msg)-1; i += 2 {
-		sum += int(msg[i])*256 + int(msg[i+1])
-	}
-	if len(msg)%2 == 1 {
-		sum += int(msg[len(msg)-1]) * 256
-	}
-	sum = (sum >> 16) + (sum & 0xffff)
-	sum += (sum >> 16)
-	return uint16(^sum)
 }
 
 func GetenvWithDefault(key, defaultValue string) string {
