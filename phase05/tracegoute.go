@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -23,8 +24,9 @@ const (
 )
 
 var ctx = context.Background()
+
 var client = redis.NewClient(&redis.Options{
-	Addr:     "localhost:6379",
+	Addr:     GetenvWithDefault("REDIS_HOST", "localhost:6379"),
 	Password: "",
 	DB:       0,
 })
@@ -36,10 +38,15 @@ type traceResponse struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
 	router := gin.Default()
 	router.GET("/traceroute/:host", trace)
 
-	router.Run("localhost:8080")
+	router.Run(GetenvWithDefault("SERVER_HOST", "localhost:8080"))
 }
 
 func trace(c *gin.Context) {
@@ -210,4 +217,13 @@ func checksum(msg []byte) uint16 {
 	sum = (sum >> 16) + (sum & 0xffff)
 	sum += (sum >> 16)
 	return uint16(^sum)
+}
+
+func GetenvWithDefault(key, defaultValue string) string {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue
+	}
+	println(value)
+	return value
 }
