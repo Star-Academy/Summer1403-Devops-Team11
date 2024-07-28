@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"sort"
 	"time"
 
@@ -80,32 +81,32 @@ func trace(c *gin.Context) {
 		}
 
 		// Create ICMP packet
-		icmpMsg := make([]byte, 8)
-		icmpMsg[0] = 8
-		icmpMsg[1] = 0
-		icmpMsg[2] = 0
-		icmpMsg[3] = 0
-		icmpMsg[4] = 0
-		icmpMsg[5] = 1
-		icmpMsg[6] = 0
-		icmpMsg[7] = 2
+		// icmpMsg := make([]byte, 8)
+		// icmpMsg[0] = 8
+		// icmpMsg[1] = 0
+		// icmpMsg[2] = 0
+		// icmpMsg[3] = 0
+		// icmpMsg[4] = 0
+		// icmpMsg[5] = 1
+		// icmpMsg[6] = 0
+		// icmpMsg[7] = 2
 
-		checksum := checksum(icmpMsg)
-		icmpMsg[2] = byte(checksum >> 8)
-		icmpMsg[3] = byte(checksum)
+		// checksum := checksum(icmpMsg)
+		// icmpMsg[2] = byte(checksum >> 8)
+		// icmpMsg[3] = byte(checksum)
 
-		// msg := icmp.Message {
-		// 	Type: ipv4.ICMPTypeEcho, Code: 0,
-		// 	Body: &icmp.Echo{
-		// 		ID: os.Getpid() & 0xffff, Seq: 1,
-		// 		Data: []byte(""),
-		// 	},
-		// }
-		// icmpMsg, err := msg.Marshal(nil)
-		// if err != nil {
-		//     fmt.Println("Error creating icmpMsg: ", err)
-		//     return
-		// }
+		msg := icmp.Message{
+			Type: ipv4.ICMPTypeEcho, Code: 0,
+			Body: &icmp.Echo{
+				ID: os.Getpid() & 0xffff, Seq: 1,
+				Data: []byte(""),
+			},
+		}
+		icmpMsg, err := msg.Marshal(nil)
+		if err != nil {
+			fmt.Println("Error creating icmpMsg: ", err)
+			return
+		}
 
 		// Send ICMP packet
 		start := time.Now()
