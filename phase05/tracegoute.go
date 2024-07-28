@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+    "github.com/gin-gonic/gin"
 )
 
 const (
@@ -16,12 +17,14 @@ const (
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s host\n", os.Args[0])
-		os.Exit(1)
-	}
+    router := gin.Default()
+    router.GET("/traceroute/:host", trace)
 
-	host := os.Args[1]
+    router.Run("localhost:8080")
+}
+
+func trace(c *gin.Context) {
+    host := c.Param("host")
 
 	// Resolve IP address
 	ipAddr, err := net.ResolveIPAddr("ip4", host)
@@ -118,6 +121,7 @@ func main() {
 		}
 	}
 }
+
 
 func checksum(msg []byte) uint16 {
 	sum := 0
