@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,7 +49,11 @@ func trace(c *gin.Context) {
 		return
 	}
 
-	traceResponse := make(map[int]string)
+	// traceResponse := make(map[int]string)
+	var traceResponse []struct {
+		Key   int
+		Value string
+	}
 
 	for ttl := 1; ttl <= MAXTTL; ttl++ {
 		// Create a raw socket
@@ -128,7 +133,11 @@ func trace(c *gin.Context) {
 		if err != nil {
 			// fmt.Println("Read error: ", err)
 			fmt.Println("*\t*\t*")
-			traceResponse[ttl] = "Timed Out"
+			// traceResponse[ttl] = "Timed Out"
+			traceResponse = append(traceResponse, struct {
+				Key   int
+				Value string
+			}{Key: ttl, Value: "Time Out."})
 			continue
 		}
 
@@ -147,12 +156,21 @@ func trace(c *gin.Context) {
 		switch rm.Type {
 
 		case ipv4.ICMPTypeEchoReply:
-			traceResponse[ttl] = ipAddr.String() + duration.String()
+			// traceResponse[ttl] = ipAddr.String() + duration.String()
+			traceResponse = append(traceResponse, struct {
+				Key   int
+				Value string
+			}{Key: ttl, Value: ipAddr.String() + "\t" + duration.String()})
+
 			fmt.Println(ipAddr, ttl, duration)
 			c.IndentedJSON(
 				http.StatusOK,
 				traceResponse,
 			)
+
+			sort.Slice(traceResponse, func(i, j int) bool {
+				return traceResponse[i].Key < traceResponse[j].Key
+			})
 
 			jsondata, _ := json.Marshal(traceResponse)
 
@@ -174,11 +192,16 @@ func trace(c *gin.Context) {
 			return
 
 		case ipv4.ICMPTypeTimeExceeded:
-			traceResponse[ttl] = addr.String() + duration.String()
+			// traceResponse[ttl] = addr.String() + duration.String()
+			traceResponse = append(traceResponse, struct {
+				Key   int
+				Value string
+			}{Key: ttl, Value: addr.String() + "\t" + duration.String()})
+
 			fmt.Println(&net.IPAddr{IP: addr.(*net.IPAddr).IP}, ttl, duration)
 
 		default:
-			fmt.Println("got %+v from %v; want echo reply", rm, addr)
+			fmt.Printf("got %+v from %v; want echo reply", rm, addr)
 		}
 	}
 	c.IndentedJSON(
