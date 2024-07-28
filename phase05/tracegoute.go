@@ -37,6 +37,8 @@ func trace(c *gin.Context) {
         return
 	}
 
+    traceResponse := make(map[int]string)
+
 	for ttl := 1; ttl <= MAXTTL; ttl++ {
 		// Create a raw socket
 		conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
@@ -115,6 +117,7 @@ func trace(c *gin.Context) {
 		if err != nil {
 			// fmt.Println("Read error: ", err)
 			fmt.Println("*\t*\t*")
+            traceResponse[ttl] = "Timed Out"
 			continue
 		}
 
@@ -133,16 +136,26 @@ func trace(c *gin.Context) {
 		switch rm.Type {
 
 		case ipv4.ICMPTypeEchoReply:
+            traceResponse[ttl] = ipAddr.String()+duration.String()
 			fmt.Println(ipAddr, ttl, duration)
+            c.IndentedJSON(
+                http.StatusOK,
+                traceResponse,
+            )
             return
 
 		case ipv4.ICMPTypeTimeExceeded:
+            traceResponse[ttl] = addr.String()+duration.String()
 			fmt.Println(&net.IPAddr{IP: addr.(*net.IPAddr).IP}, ttl, duration)
 
 		default:
 			fmt.Println("got %+v from %v; want echo reply", rm, addr)
 		}
 	}
+    c.IndentedJSON(
+        http.StatusOK,
+        traceResponse,
+    )
 }
 
 
