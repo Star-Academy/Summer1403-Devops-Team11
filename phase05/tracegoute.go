@@ -29,8 +29,9 @@ var client = redis.NewClient(&redis.Options{
 })
 
 type traceResponse struct {
-	TTL      int
-	Response string
+	TTL   int
+	IP    string
+	RTIME string
 }
 
 func main() {
@@ -132,10 +133,8 @@ func trace(c *gin.Context) {
 
 		n, addr, err := conn.ReadFrom(buff)
 		if err != nil {
-			// fmt.Println("Read error: ", err)
 			fmt.Println("*\t*\t*")
-			// traceResponse[ttl] = "Timed Out"
-			traceResponses = append(traceResponses, traceResponse{TTL: ttl, Response: "Time Out."})
+			traceResponses = append(traceResponses, traceResponse{TTL: ttl, IP: "*", RTIME: "Time out!"})
 			continue
 		}
 
@@ -154,7 +153,7 @@ func trace(c *gin.Context) {
 		switch rm.Type {
 
 		case ipv4.ICMPTypeEchoReply:
-			traceResponses = append(traceResponses, traceResponse{TTL: ttl, Response: ipAddr.String() + "\t" + duration.String()})
+			traceResponses = append(traceResponses, traceResponse{TTL: ttl, IP: ipAddr.String(), RTIME: duration.String()})
 
 			fmt.Println(ipAddr, ttl, duration)
 			c.IndentedJSON(
@@ -185,7 +184,7 @@ func trace(c *gin.Context) {
 			return
 
 		case ipv4.ICMPTypeTimeExceeded:
-			traceResponses = append(traceResponses, traceResponse{TTL: ttl, Response: addr.String() + "\t" + duration.String()})
+			traceResponses = append(traceResponses, traceResponse{TTL: ttl, IP: addr.String(), RTIME: duration.String()})
 
 			fmt.Println(&net.IPAddr{IP: addr.(*net.IPAddr).IP}, ttl, duration)
 
