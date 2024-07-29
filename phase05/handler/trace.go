@@ -2,12 +2,11 @@ package handler
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
-	"your_module/trace"
-	"your_module/helper"
+	"github.com/muhuchah/traceroute/trace"
+	"github.com/muhuchah/traceroute/helper"
 )
 
 func Trace(c *gin.Context) {
@@ -23,6 +22,6 @@ func Trace(c *gin.Context) {
 
 	c.IndentedJSON(http.StatusOK, traceResponses)
 
-	helper.CacheTraceResults(host, traceResponses)
+	helper.StoreResults(host, traceResponses)
 }
 
