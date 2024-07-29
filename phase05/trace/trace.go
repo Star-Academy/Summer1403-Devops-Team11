@@ -13,6 +13,7 @@ import (
 const (
 	ProtocolICMP = 1
 	MAXTTL       = 128
+	TIMEOUT_TIME = 250
 )
 
 type TraceResponse struct {
@@ -53,7 +54,11 @@ func PerformTrace(ipAddr *net.IPAddr) []TraceResponse {
 			continue
 		}
 
-		traceResponses = append(traceResponses, receiveICMPResponse(conn, ttl, start))
+		curResponse := receiveICMPResponse(conn, ttl, start)
+		traceResponses = append(traceResponses, curResponse)
+		if curResponse.IP == ipAddr.String() {
+			break
+		}
 	}
 	return traceResponses
 }
@@ -85,6 +90,12 @@ func sendICMPMessage(conn *icmp.PacketConn, msg icmp.Message, ipAddr *net.IPAddr
 func receiveICMPResponse(conn *icmp.PacketConn, ttl int, start time.Time) TraceResponse {
 	buff := make([]byte, 1500)
 
+	err := conn.SetReadDeadline(time.Now().Add(TIMEOUT_TIME * time.Millisecond))
+	if err != nil {
+		fmt.Println("Error setting ReadDeadline:", err)
+		return TraceResponse{TTL: ttl, IP: "*", RTIME: "Set Deadline error!"}
+	}
+
 	n, addr, err := conn.ReadFrom(buff)
 	if err != nil {
 		fmt.Println("*\t*\t*")
@@ -109,4 +120,3 @@ func receiveICMPResponse(conn *icmp.PacketConn, ttl int, start time.Time) TraceR
 		return TraceResponse{TTL: ttl, IP: addr.String(), RTIME: "Unknown response"}
 	}
 }
-
