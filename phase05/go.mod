@@ -1,4 +1,4 @@
-module phase05
+module github.com/muhuchah/traceroute
 
 go 1.22.2
 
