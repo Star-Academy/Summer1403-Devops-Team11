@@ -3,9 +3,9 @@ FROM golang:1.22.5-alpine3.20 AS builder
 
 WORKDIR /app 
 
-RUN adduser -D -g '' -u 10001 appuser
+RUN adduser -D appuser
 
-RUN chown -R appuser:appuser /app 
+RUN chown -R appuser /app 
 
 USER appuser
 
