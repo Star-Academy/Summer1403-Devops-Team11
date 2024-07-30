@@ -1,0 +1,16 @@
+version: '3.8'  
+
+services:  
+  db:  
+    image: redis:6.0  
+    ports:  
+      - "6379:6379"  
+
+  app:  
+    build:  
+      context: ./tracegouteApi  
+      dockerfile: Dockerfile  
+    ports:  
+      - "8080:8080"  
+    depends_on:  
+      - db 
