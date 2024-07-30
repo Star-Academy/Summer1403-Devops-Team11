@@ -1,12 +1,30 @@
-FROM golang:1.21.0
+#builder
+FROM golang:1.22.5-alpine3.20 AS builder
 
-WORKDIR /api
+WORKDIR /app 
 
-COPY . .
+RUN adduser -D -g '' -u 10001 appuser
+
+RUN chown -R appuser:appuser /app 
+
+USER appuser
+
+COPY go.mod go.sum .
 RUN go mod download
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /traceroute
+COPY . .
+#COPY */*.go .
+#COPY main.go .
+#COPY ./helper ./trace ./handler go.sum go.mod main.go .
 
-EXPOSE 8080
+RUN CGO_ENABLED=0 GOOS=linux go build -o ./tracegoute
 
-CMD ["/traceroute"]
+#runner
+FROM alpine:3.14
+
+WORKDIR /app
+
+COPY --from=builder --chown=root:root app/.env ./.env
+COPY --from=builder --chown=root:root app/tracegoute ./tracegoute
+
+CMD ["./tracegoute"]
