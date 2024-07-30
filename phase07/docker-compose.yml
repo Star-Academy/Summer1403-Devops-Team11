@@ -1,16 +1,32 @@
 version: '3.8'  
 
 services:  
-  db:  
-    image: redis:6.0  
+  redis:    
+    restart: always
+    image: redis:6.0 
     ports:  
       - "6379:6379"  
 
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: "redis-cli ping | grep PONG"
+      interval: 1s
+      timeout: 3s
+      retries: 3
+
   app:  
+    restart: always
     build:  
       context: ./tracegouteApi  
       dockerfile: Dockerfile  
     ports:  
-      - "8080:8080"  
+      - "8080:8080"
     depends_on:  
-      - db 
+      redis:
+        condition: service_healthy
+
+
+volumes:
+  redis-data:
