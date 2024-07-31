@@ -21,3 +21,19 @@ spec:
           # env:  
           # - name: REDIS_HOST  
           #          value: "redis:"
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-go-app
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080 
+  selector:
+    app: my-go-app
+
