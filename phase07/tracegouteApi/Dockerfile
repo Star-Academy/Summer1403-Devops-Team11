@@ -13,14 +13,11 @@ COPY go.mod go.sum .
 RUN go mod download
 
 COPY . .
-#COPY */*.go .
-#COPY main.go .
-#COPY ./helper ./trace ./handler go.sum go.mod main.go .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./tracegoute
 
 #runner
-FROM alpine:3.14
+FROM scratch 
 
 WORKDIR /app
 
