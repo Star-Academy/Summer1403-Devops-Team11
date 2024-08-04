@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -13,7 +13,7 @@ import (
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		fmt.Println("Error loading .env file")
 	}
 
 	router := gin.Default()
@@ -21,4 +21,3 @@ func main() {
 
 	router.Run(helper.GetEnv("SERVER_HOST", "localhost:8080"))
 }
-
