@@ -1,7 +1,7 @@
 apiVersion: apps/v1  
 kind: Deployment  
 metadata:  
-  name: my-go-app  
+  name: my-go-app
 spec:  
   replicas: 1  
   selector:  
@@ -17,6 +17,15 @@ spec:
         image: mygoapp
         imagePullPolicy: IfNotPresent
         ports:  
-        - containerPort: 8080 
-
-
+        - containerPort: 8080
+          env:
+          - name: REDIS_PWD
+            valueFrom:
+                secretKeyRef:
+                    name: redis-secret
+                    key: redis-password
+          - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+                name: redis-config
+                key: redis-url
