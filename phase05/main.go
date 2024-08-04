@@ -19,5 +19,5 @@ func main() {
 	router := gin.Default()
 	router.GET("/traceroute/:host", handler.Trace)
 
-	router.Run(helper.GetEnv("SERVER_HOST", "localhost:8080"))
+	router.Run(helper.GetEnv("SERVER_HOST", ":8080"))
 }
