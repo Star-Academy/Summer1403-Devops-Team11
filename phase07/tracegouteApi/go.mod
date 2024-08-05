@@ -1,4 +1,4 @@
-module github.com/muhuchah/traceroute
+module traceroute
 
 go 1.22.2
 
