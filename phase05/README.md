@@ -41,7 +41,16 @@ go run main.go
 The server will start on the host and port defined in the .env file, defaulting to :8080 if not specified.
 
 ## Usage
-To use the traceroute functionality, make a GET request to the /traceroute/:host endpoint. Replace :host with the domain or IP address you want to trace.
+
+### API Reference
+
+```http
+  GET /traceroute/{domain}
+```
+
+| Parameter | Type     | Description                       |
+| :-------- | :------- | :-------------------------------- |
+| `domain`      | `string` | **Required**. domain for traceroute |
 
 Example using curl:
 
@@ -55,5 +64,5 @@ curl http://localhost:8080/traceroute/example.com
 - helper: Utility functions and helpers for environment management and other tasks.
 
 ## Acknowledgments
-- Gin Web Framework
-- Godotenv
+- [Gin](https://gin-gonic.com/) Web Framework
+- [Godotenv](https://github.com/joho/godotenv)
