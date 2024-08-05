@@ -1,31 +1,34 @@
-name: Build and Push Docker Image  
+name: Bump version  
 
-on:
-  push:
-    tags:  
-      - 'v*.*.*'
+on:  
+  push:  
+    branches:  
+      - main  
 
 jobs:  
   build:  
-    runs-on: ubuntu-latest  
-
+    runs-on: ubuntu-22.04  
+    permissions:  
+      contents: write  
     steps:  
-      - name: Checkout code  
-        uses: actions/checkout@v2  
+      - uses: actions/checkout@v4  
+        with:  
+          fetch-depth: '0'  
+
+      - name: Bump version and push tag  
+        id: tagstep  
+        uses: anothrNick/github-tag-action@v1  
+        env:  
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          WITH_V: false  
 
       - name: Log in to Docker Hub  
         uses: docker/login-action@v2  
         with:  
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASS }} 
+          username: ${{ secrets.DOCKERHUB_USERNAME }}  
+          password: ${{ secrets.DOCKERHUB_PASS }}  
 
       - name: Build the Docker image  
-        working-directory: phase07/tracegouteAPI
-        run: |
-          IMAGE_TAG=${GITHUB_REF#refs/tags/}  
-          docker build -t yaghooli/mygoapp:$IMAGE_TAG .
-
-      - name: Push the Docker image  
-        run: |
-          IMAGE_TAG=${GITHUB_REF#refs/tags/}  
-          docker push yaghooli/mygoapp:$IMAGE_TAG
+        run: |  
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mygoapp:${{ steps.tagstep.outputs.tag }} .  
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mygoapp:${{ steps.tagstep.outputs.tag }}
