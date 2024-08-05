@@ -26,7 +26,7 @@ func StoreResults[T any](key string, data []T) {
 
 	err := client.Set(ctx, key, jsonData, 0).Err()
 	if err != nil {
-		log.Fatalf("could not set data on redis: %v", err)
+		log.Printf("Could not set data on redis: %v", err)
 	}
 }
 
