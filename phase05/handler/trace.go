@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/muhuchah/traceroute/trace"
-	"github.com/muhuchah/traceroute/helper"
+	"traceroute/helper"
+	"traceroute/trace"
 )
 
 func Trace(c *gin.Context) {
@@ -24,4 +24,3 @@ func Trace(c *gin.Context) {
 
 	helper.StoreResults(host, traceResponses)
 }
-

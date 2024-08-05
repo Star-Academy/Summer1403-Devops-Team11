@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
-	"github.com/muhuchah/traceroute/handler"
-	"github.com/muhuchah/traceroute/helper"
+	"traceroute/handler"
+	"traceroute/helper"
 )
 
 func main() {
