@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
@@ -10,26 +11,25 @@ import (
 )
 
 func Trace(c *gin.Context) {
-	logger := helper.InitLogger()
-
 	host := c.Param("host")
 	if host == "" {
-		logger.Warn("Invalid host")
+		fmt.Println("[Trace handler] [Error]: Invalid host to trace!")
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"ERROR": "Invalid host"})
 		return
 	}
 
 	ipAddr, err := trace.ResolveIP(host)
 	if err != nil {
-		logger.Error("IP resolution failed", "Host", host)
+		fmt.Println("[Trace handler] [Error]: IP resolution failed")
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"ERROR": "Failed to resolve IP address"})
 		return
 	}
 
-	logger.Info("performing Trace")
+	fmt.Println("[Trace handler] [Info]: Performing trace")
 	traceResponses := trace.PerformTrace(ipAddr)
 
 	c.IndentedJSON(http.StatusOK, traceResponses)
 
+	fmt.Println("[Trace handler] [Info]: Storing results")
 	helper.StoreResults(host, traceResponses)
 }
