@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
@@ -9,14 +11,11 @@ import (
 )
 
 func main() {
-	// Initialize logger
-	logger := helper.InitLogger()
-
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		logger.Warn("Warning: failed to load .env file")
+		fmt.Println("Warning: failed to load .env file")
 	} else {
-		logger.Info("Successfully loaded .env file")
+		fmt.Println("Successfully loaded .env file")
 	}
 
 	router := gin.Default()
@@ -24,8 +23,8 @@ func main() {
 
 	// Start the server
 	serverHost := helper.GetEnv("SERVER_HOST", ":8080")
-	logger.Info("Starting server")
+	fmt.Println("Starting server")
 	if err := router.Run(serverHost); err != nil {
-		logger.Error("Unable to start server")
+		fmt.Println("Unable to start server")
 	}
 }
