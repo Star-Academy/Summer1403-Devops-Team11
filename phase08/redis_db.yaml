@@ -26,3 +26,18 @@ spec:
         volumeMounts:
           - mountPath: "/data/redis"
             name: redis-volume
+        
+        livenessProbe:  
+          tcpSocket:  
+            port: 6379  
+          initialDelaySeconds: 30  
+          periodSeconds: 10     
+        
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
