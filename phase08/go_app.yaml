@@ -29,5 +29,5 @@ spec:
           - name: REDIS_HOST  
             valueFrom:  
               configMapKeyRef:  
-                name: example-configmap  
+                name: redishost 
                 key: REDIS_HOST  
