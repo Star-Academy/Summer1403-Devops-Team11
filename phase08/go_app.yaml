@@ -16,7 +16,18 @@ spec:
       - name: my-go-app  
         image: mygoapp
         imagePullPolicy: IfNotPresent
-        ports:  
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"         
+          limits:
+            memory: "512Mi"     
+            cpu: "500m"    
+        ports:
         - containerPort: 8080 
-
-
+        env:  
+          - name: REDIS_HOST  
+            valueFrom:  
+              configMapKeyRef:  
+                name: example-configmap  
+                key: REDIS_HOST  
